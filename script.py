@@ -156,19 +156,30 @@ def get_x_intersections(N,img):
 
 #aux = None
 def classifica_segments(img,segments,output_name):
-#    img = img_[0:600,0:600]
-#    global aux
-#    aux = img
-    px = 300
     
+    img_height = img.shape[0]
+    img_width = img.shape[1]
+    
+    segments.sort()
     verticals = []
     for idx in range(len(segments)):
         if(segments[idx] >= 0 and segments[idx] <= img.shape[1]):
             verticals.append(segments[idx])   
     
     verticals.insert(0,0)
+    verticals.insert(len(verticals),img_width)
+    
+    px = 30
+    for i in range(len(verticals)):
+        if (i != 0):
+            verticals[i] = int(verticals[i] - (verticals[i]%px))
+    
+    puertas_segmento = []
+    pareds_segmento = []
     
     for i in range(len(verticals)):
+        count_puertas = 0
+        count_walls = 0
         seg_init = verticals[i]
         if(i == len(verticals)-1):
             seg_max = img.shape[1]
@@ -195,32 +206,45 @@ def classifica_segments(img,segments,output_name):
                 glcm = graycomatrix(gray_fragment,[1],[0],256,normed=True)
                 energy = graycoprops(glcm,'energy')
                 
+                x0 = mean_saturacio
+                x1 = mean_intensitat
+                x2 = energy 
+                w0 = 37.378
+                w1 = -18.651
+                w2 = -35.932
+                w3 = 6.266
+                
+                p_output = x0*w0 + x1*w1 + x2*w2 + w3
+                
+                if(p_output[0][0] > 0):
+                    count_puertas = count_puertas + 1
+                else:
+                    count_walls = count_walls + 1
                 
                                 
                 f_init = f_init + px
-                break
+#                break
                 
             c_init = c_init + px
-            break
-        break
+#            break
+        puertas_segmento.append(count_puertas)
+        pareds_segmento.append(count_walls)
+#        break
     
+    print(verticals)
+    print(puertas_segmento)
+    print(pareds_segmento)
+
+    for i in range(len(puertas_segmento)):
+        if(puertas_segmento[i] != 0 and pareds_segmento[i] != 0):
+            if((puertas_segmento[i]/(puertas_segmento[i]+pareds_segmento[i])) > 0.7):
+                print("puerta")
+            elif((pareds_segmento[i]/(puertas_segmento[i]+pareds_segmento[i])) > 0.6):
+                print("pared")
+            else:
+                print("indeterminado")
             
-    # Para cada segmento recorrer 30x30 px, despreciando los restantes
-        # saturación
-            
-        # intensitat
     
-        # energia
-        
-        # saturacion, intensitat, energia -> puerta o pared ? (perceptron)
-        
-#    if(fragments_porta/(fragments_porta+fragments_pared) > 0.7):
-#        # es puerta
-#    else if (fragments_pared/(fragments_porta+fragments_pared) > 0.6):
-#        # es pared
-#    else:
-        # indeterminat
-        
 original_images = []
 def main():
 
@@ -269,7 +293,8 @@ def main():
         
         classifica_segments(original_images[counter-1],verticals,"img{}_classificat.PNG".format(counter))
         counter = counter + 1
-        break
+        
+        print("------------------")
 
     print("Images generated!")
 #    io.imshow(aux)
