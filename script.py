@@ -154,95 +154,146 @@ def get_x_intersections(N,img):
 
     return verticals,max_is,max_js,H_acum
 
-#aux = None
+def classifica_clase(img,seg_init,seg_max):
+#    print(seg_init,seg_max)
+    
+    px = 30
+    height_max = img.shape[0] - img.shape[0]%px - px
+#    print(height_max)
+    
+    count_doors,count_walls = 0,0
+    c_init = seg_init
+    
+    while(c_init + px <= seg_max):
+        
+        f_init = 0
+        while(f_init + px < img.shape[0]):
+            
+            fragment_actual = img[f_init : f_init + px, c_init : c_init + px]
+            
+            hsv_fragment = rgb2hsv(fragment_actual)
+            saturacio = hsv_fragment[:, :, 1]
+            intensitat = hsv_fragment[:, :, 2]
+            
+            mean_saturacio = np.mean(saturacio)
+            mean_intensitat = np.mean(intensitat)
+            
+            gray_fragment = rgb2gray(fragment_actual)
+            gray_fragment = img_as_ubyte(gray_fragment)                
+            glcm = graycomatrix(gray_fragment,[1],[0],256,normed=True)
+            energy = graycoprops(glcm,'energy')
+            
+            x0 = mean_saturacio
+            x1 = mean_intensitat
+            x2 = energy 
+            w0 = 38.815
+            w1 = -17.061
+            w2 = -50.880
+            w3 = 6.626
+              
+            p_output = x0*w0 + x1*w1 + x2*w2 + w3
+            if(p_output[0][0] > 0):
+                count_doors = count_doors + 1
+            else:
+                count_walls = count_walls + 1   
+                               
+            f_init = f_init + px
+#               break
+               
+        c_init = c_init + px
+#            break
+
+    
+#    print("{} -> {}: {}, {}".format(seg_init,seg_max,count_doors,count_walls))
+    suma_total = count_doors + count_walls
+    ret = None
+    if(count_doors/suma_total > 0.7):
+        ret = 1
+    elif(count_walls/suma_total > 0.6):
+        ret = 2
+    else:
+        ret = 0
+        
+    return ret
+        
+def edit_save_img(img,verticals,classificacio,output_name):
+    
+    to_save = img
+    for i in range(len(verticals)):
+        seg_init,seg_max = None,None
+        seg_init = verticals[i]
+        if i != len(verticals)-1 :
+            seg_max = verticals[i+1]
+        elif i == len(verticals)-1:
+            seg_max = img.shape[1]
+        
+#        print("{} -> {}: {}".format(seg_init,seg_max,classificacio[i]))
+        
+        if(classificacio[i] == 0):
+#            negre
+            to_save[:,seg_init:seg_max] = 0
+        elif(classificacio[i] == 2):
+#            blanc
+            to_save[:,seg_init:seg_max] = 255
+    
+    io.imsave(output_name,to_save)
+            
+        
+    
+
 def classifica_segments(img,segments,output_name):
     
     img_height = img.shape[0]
     img_width = img.shape[1]
     
     segments.sort()
-    verticals = []
-    for idx in range(len(segments)):
-        if(segments[idx] >= 0 and segments[idx] <= img.shape[1]):
-            verticals.append(segments[idx])   
+    verticals_ = []
+    for i in range(len(segments)):
+        if segments[i] >= 0 and segments [i] <= img_width:
+            verticals_.append(segments[i])
     
+#    print(verticals_)
+    verticals = []
+    for i in range(len(verticals_)):
+        if i != len(verticals_)-1 and (verticals_[i+1] > verticals_[i] + 15):
+            verticals.append(int(verticals_[i]))
+        elif i == len(verticals_)-1:
+            verticals.append(int(verticals_[i]))
+            
     verticals.insert(0,0)
-    verticals.insert(len(verticals),img_width)
+#    print(verticals)
     
     px = 30
+    round_verticals = []
     for i in range(len(verticals)):
-        if (i != 0):
-            verticals[i] = int(verticals[i] - (verticals[i]%px))
-    
-    puertas_segmento = []
-    pareds_segmento = []
-    
-    for i in range(len(verticals)):
-        count_puertas = 0
-        count_walls = 0
-        seg_init = verticals[i]
-        if(i == len(verticals)-1):
-            seg_max = img.shape[1]
-        else:
-            seg_max = verticals[i+1]
-        
-        c_init = seg_init
-        while(c_init + px < seg_max):
+        round_verticals.append(int(verticals[i] - (verticals[i]%px)))
             
-            f_init = 0
-            while(f_init + px < img.shape[0]):
-                
-                fragment_actual = img[f_init : f_init + px, c_init : c_init + px]
-                
-                hsv_fragment = rgb2hsv(fragment_actual)
-                saturacio = hsv_fragment[:, :, 1]
-                intensitat = hsv_fragment[:, :, 2]
-                
-                mean_saturacio = np.mean(saturacio)
-                mean_intensitat = np.mean(intensitat)
-                
-                gray_fragment = rgb2gray(fragment_actual)
-                gray_fragment = img_as_ubyte(gray_fragment)                
-                glcm = graycomatrix(gray_fragment,[1],[0],256,normed=True)
-                energy = graycoprops(glcm,'energy')
-                
-                x0 = mean_saturacio
-                x1 = mean_intensitat
-                x2 = energy 
-                w0 = 37.378
-                w1 = -18.651
-                w2 = -35.932
-                w3 = 6.266
-                
-                p_output = x0*w0 + x1*w1 + x2*w2 + w3
-                
-                if(p_output[0][0] > 0):
-                    count_puertas = count_puertas + 1
-                else:
-                    count_walls = count_walls + 1
-                
-                                
-                f_init = f_init + px
-#                break
-                
-            c_init = c_init + px
-#            break
-        puertas_segmento.append(count_puertas)
-        pareds_segmento.append(count_walls)
-#        break
-    
-    print(verticals)
-    print(puertas_segmento)
-    print(pareds_segmento)
+#    print(round_verticals)
+    classificacio = []
+    for i in range(len(round_verticals)):
+        seg_init = round_verticals[i]
+        if (i == len(round_verticals)-1):
+            seg_max = img_width
+        else:
+            seg_max = round_verticals[i+1]
+        
+        clase = classifica_clase(img,seg_init,seg_max)
+#       0 = indeterminado, 1 = puerta, 2 = pared
+        if(clase == 2):
+#            print("{} -> {}: pared".format(seg_init,seg_max))
+            classificacio.append(2)
+        elif(clase == 1):
+#            print("{} -> {}: puerta".format(seg_init,seg_max))
+            classificacio.append(1)
+        elif(clase == 0):
+#            print("{} -> {}: indeterminado".format(seg_init,seg_max))
+            classificacio.append(0)
+            
+#    print(verticals)
+#    print(classificacio)
+    edit_save_img(img,verticals,classificacio,output_name)
 
-    for i in range(len(puertas_segmento)):
-        if(puertas_segmento[i] != 0 and pareds_segmento[i] != 0):
-            if((puertas_segmento[i]/(puertas_segmento[i]+pareds_segmento[i])) > 0.7):
-                print("puerta")
-            elif((pareds_segmento[i]/(puertas_segmento[i]+pareds_segmento[i])) > 0.6):
-                print("pared")
-            else:
-                print("indeterminado")
+
             
     
 original_images = []
@@ -294,7 +345,7 @@ def main():
         classifica_segments(original_images[counter-1],verticals,"img{}_classificat.PNG".format(counter))
         counter = counter + 1
         
-        print("------------------")
+#        print("------------------")
 
     print("Images generated!")
 #    io.imshow(aux)

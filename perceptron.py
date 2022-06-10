@@ -89,25 +89,25 @@ def get_plane():
     return best_w, data
 
 def main():
-    normal,data = get_plane()
-    col_mean = np.mean(data,axis=0)
-    x_mean = col_mean[0]
-    y_mean = col_mean[1]
-    z_mean = col_mean[2]
-    
-    point = np.array([x_mean,y_mean,z_mean])
-
-    d = -point.dot(normal[0:(np.shape(data)[1]-1)])
-    xx, yy = np.meshgrid(range(2), range(2))
-    z = (-normal[0] * xx - normal[1] * yy - d) * 1. /normal[2]
-    
+    [w1,w2,w3,w0],data = get_plane()
+#    col_mean = np.mean(data,axis=0)
+#    x_mean = col_mean[0]
+#    y_mean = col_mean[1]
+#    z_mean = col_mean[2]
+#    
+#    point = np.array([x_mean,y_mean,z_mean])
+#
+#    d = -point.dot(normal[0:(np.shape(data)[1]-1)])
+#    xx, yy = np.meshgrid(range(2), range(2))
+#    z = (-normal[0] * xx - normal[1] * yy - d) * 1. /normal[2]
+#    
     fig = plt.figure(figsize = (20, 15))
     ax = plt.axes(projection='3d')
-    ax.plot_surface(xx, yy, z, alpha=0.2)
-    ax.set_xlabel('X axis')
-    ax.set_ylabel('Y axis')
-    ax.set_zlabel('Z axis')
-    
+#    ax.plot_surface(xx, yy, z, alpha=0.2)
+#    ax.set_xlabel('X axis')
+#    ax.set_ylabel('Y axis')
+#    ax.set_zlabel('Z axis')
+#    
     for d in data:
         x = d[0]
         y = d[1]
@@ -116,6 +116,14 @@ def main():
             ax.scatter3D(x,y,z, color = "green", s = 11)
         else:
             ax.scatter3D(x,y,z, color = "red", s = 11)
+            
+    # crea valor pels eixos x,y
+    x = y = np.arange(0.0, 1.0, 0.1)
+    [xx,yy]=np.meshgrid(x,y)
+    # calcula els valors de z
+    z = (-w1*xx - w2*yy - w0)/w3
+    # pinta el pla de separació
+    ax.plot_surface(xx,yy,z,alpha=0.2)
 
 if __name__ == "__main__":
     main()
